@@ -1,5 +1,13 @@
 // holographic_kernel.c
-#include <stdint.h>
+
+typedef unsigned char   uint8_t;
+typedef unsigned short  uint16_t;
+typedef unsigned int    uint32_t;
+typedef unsigned int    size_t; // Define size_t
+
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
 
 // Enhanced Holographic Memory Configuration
 #define HOLOGRAPHIC_DIMENSIONS 512
@@ -43,7 +51,6 @@ struct Entity {
     uint32_t age;
     uint32_t interaction_count;
     uint8_t is_active;
-
     float specialization_scores[MAX_ENTITY_DOMAINS];
     float resource_allocation;
     float confidence;
@@ -95,6 +102,23 @@ uint32_t check_protected_mode() {
     return cr0 & 0x1;
 }
 
+// Minimal strlen implementation
+size_t strlen(const char *str) {
+    const char *s;
+    for (s = str; *s; ++s);
+    return (s - str);
+}
+
+// Minimal strncpy implementation
+char *strncpy(char *dest, const char *src, size_t n) {
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++)
+        dest[i] = src[i];
+    for ( ; i < n; i++)
+        dest[i] = '\0';
+    return dest;
+}
+
 //---Function Prototypes---
 void serial_init();
 void serial_write(char c);
@@ -119,7 +143,7 @@ uint8_t get_memory_value(uint32_t address);
 
 //---Kernel starting point---
 void kmain() {
-    volatile char* video = (volatile char*)0xb8000;
+    volatile char* video = (volatile char*)VIDEO_MEMORY;
     video[0] = 'K';
     video[1] = 0x0F;
     video[2] = 'E';
@@ -135,6 +159,7 @@ void kmain() {
     serial_print("DEBUG: Serial initialized, kernel reached!\n");
     serial_print("Enhanced Holographic Kernel (Emergent Entities) Starting...\n");
     serial_print("Initializing high-dimensional memory system...\n");
+
     print("Enhanced Holographic Kernel (Emergent Entities) Starting...\n");
     print("Initializing high-dimensional memory system...\n");
 
@@ -162,9 +187,9 @@ void kmain() {
 
     while (1) {
         if (holo_system.global_timestamp - last_update > update_interval) {
-             update_entities();
-             render_entities_to_vga();
-             last_update = holo_system.global_timestamp;
+            update_entities();
+            render_entities_to_vga();
+            last_update = holo_system.global_timestamp;
         }
         holo_system.global_timestamp++;
         __asm__ volatile("hlt");
@@ -188,6 +213,7 @@ HolographicVector create_holographic_vector(const void* input, uint32_t size) {
     vector.hash_signature = hash_data(input, size);
     vector.valid = 1;
     vector.active_dimensions = 0;
+
     uint32_t seed = vector.hash_signature;
     for (int i = 0; i < HOLOGRAPHIC_DIMENSIONS; i++) {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -209,6 +235,7 @@ void encode_holographic_memory(HolographicVector* input, HolographicVector* outp
         holo_system.memory_count = MAX_MEMORY_ENTRIES - 1;
         serial_print("Warning: Holographic memory full, evicted oldest entry.\n");
     }
+
     MemoryEntry* entry = &holo_system.memory_pool[holo_system.memory_count];
     entry->input_pattern = *input;
     entry->output_pattern = *output;
@@ -248,6 +275,7 @@ void load_initial_genome_vocabulary() {
         "GENOME_SIMPLE_RULE_1"
     };
     int num_vocab = sizeof(vocab) / sizeof(vocab[0]);
+
     serial_print("Loading initial genome vocabulary...\n");
     for (int i = 0; i < num_vocab; i++) {
         HolographicVector pattern = create_holographic_vector(vocab[i], strlen(vocab[i]) + 1);
@@ -261,13 +289,16 @@ void load_initial_genome_vocabulary() {
 
 void initialize_emergent_entities() {
     serial_print("Initializing emergent entity pool...\n");
+
     HolographicVector simple_genome_rule = create_holographic_vector("GENOME_SIMPLE_RULE_1", strlen("GENOME_SIMPLE_RULE_1") + 1);
     HolographicVector* genome_ptr = retrieve_holographic_memory(simple_genome_rule.hash_signature);
+
     if (!genome_ptr) {
-         serial_print("Error: Initial genome rule not found in memory!\n");
-         encode_holographic_memory(&simple_genome_rule, &simple_genome_rule);
-         genome_ptr = &simple_genome_rule;
+        serial_print("Error: Initial genome rule not found in memory!\n");
+        encode_holographic_memory(&simple_genome_rule, &simple_genome_rule);
+        genome_ptr = &simple_genome_rule;
     }
+
     HolographicVector trait_dormant = create_holographic_vector("TRAIT_DORMANT", strlen("TRAIT_DORMANT") + 1);
 
     for (int i = 0; i < INITIAL_ENTITIES; i++) {
@@ -275,6 +306,7 @@ void initialize_emergent_entities() {
             serial_print("Error: Cannot initialize more entities, pool full.\n");
             break;
         }
+
         struct Entity* entity = &entity_pool[active_entity_count];
         entity->id = active_entity_count;
         entity->age = 0;
@@ -282,9 +314,11 @@ void initialize_emergent_entities() {
         entity->is_active = 1;
         entity->state = trait_dormant;
         entity->genome = genome_ptr;
+
         for (int j = 0; j < MAX_ENTITY_DOMAINS; j++) {
             entity->specialization_scores[j] = 0.1f;
         }
+
         entity->resource_allocation = 1.0f;
         entity->confidence = 0.5f;
         entity->fitness_score = 0;
@@ -292,13 +326,16 @@ void initialize_emergent_entities() {
         entity->marked_for_gc = 0;
         entity->is_mutant = 0;
         entity->task_alignment = 0.0f;
+
         strncpy(entity->domain_name, "generic", 31);
         entity->domain_name[31] = '\0';
+
         active_entity_count++;
         serial_print("  Initialized entity ID: ");
         print_hex(entity->id);
         serial_print("\n");
     }
+
     serial_print("Initialized ");
     print_hex(active_entity_count);
     serial_print(" emergent entities.\n");
@@ -322,9 +359,10 @@ struct Entity* spawn_entity() {
 
     HolographicVector simple_genome_rule = create_holographic_vector("GENOME_SIMPLE_RULE_1", strlen("GENOME_SIMPLE_RULE_1") + 1);
     HolographicVector* genome_ptr = retrieve_holographic_memory(simple_genome_rule.hash_signature);
+
     if (!genome_ptr) {
-         encode_holographic_memory(&simple_genome_rule, &simple_genome_rule);
-         genome_ptr = &simple_genome_rule;
+        encode_holographic_memory(&simple_genome_rule, &simple_genome_rule);
+        genome_ptr = &simple_genome_rule;
     }
 
     new_entity->state = create_holographic_vector("TRAIT_DORMANT", strlen("TRAIT_DORMANT") + 1);
@@ -333,6 +371,7 @@ struct Entity* spawn_entity() {
     for (int i = 0; i < MAX_ENTITY_DOMAINS; i++) {
         new_entity->specialization_scores[i] = 0.1f;
     }
+
     new_entity->resource_allocation = 1.0f;
     new_entity->confidence = 0.5f;
     new_entity->task_alignment = 0.0f;
@@ -341,11 +380,9 @@ struct Entity* spawn_entity() {
     new_entity->domain_name[31] = '\0';
 
     active_entity_count++;
-
     serial_print("[SPAWN] SUCCESS: New entity ID ");
     print_hex(new_entity->id);
     serial_print(" initialized.\n");
-
     return new_entity;
 }
 
@@ -380,6 +417,7 @@ void update_entities() {
         int neighbor_active = 0;
         int prev_idx = (i == 0) ? (active_entity_count - 1) : (i - 1);
         int next_idx = (i == active_entity_count - 1) ? 0 : (i + 1);
+
         if (entity_pool[prev_idx].is_active) neighbor_active++;
         if (entity_pool[next_idx].is_active) neighbor_active++;
 
@@ -418,7 +456,6 @@ void update_entities() {
                     int rand_dim = holo_system.global_timestamp % HOLOGRAPHIC_DIMENSIONS;
                     child->state.data[rand_dim] = -child->state.data[rand_dim];
                 }
-
                 child->task_vector = entity->task_vector;
                 child->path_id = entity->path_id;
                 child->task_alignment = entity->task_alignment;
@@ -428,7 +465,6 @@ void update_entities() {
                 serial_print(" from parent ");
                 print_hex(entity->id);
                 serial_print("\n");
-
                 entity->spawn_count++;
                 entity->fitness_score += 10;
             }
@@ -490,7 +526,6 @@ void update_entities() {
         }
     }
     active_entity_count = write_index;
-
     serial_print("[GC] Update cycle completed. Active entities: ");
     print_hex(active_entity_count);
     serial_print("\n");
@@ -510,20 +545,19 @@ void render_entities_to_vga() {
         }
     }
 
-    for (int i = 0; i < active_entity_count && i < max_lines; i++) {
+    for (uint32_t i = 0; i < active_entity_count && i < max_lines; i++) {
         struct Entity* entity = &entity_pool[i];
         int screen_y = start_line + i;
         if (screen_y >= 25) break;
+
         int col = start_col;
         int screen_pos = (screen_y * 80 + col) * 2;
 
         video[screen_pos] = 'E'; screen_pos += 2;
         video[screen_pos] = ':'; screen_pos += 2;
-
         char hex_char = (entity->id < 10) ? ('0' + entity->id) : ('A' + entity->id - 10);
         video[screen_pos] = hex_char; screen_pos += 2;
         video[screen_pos] = ' '; screen_pos += 2;
-
         video[screen_pos] = entity->is_active ? 'A' : 'D'; screen_pos += 2;
         video[screen_pos] = ' '; screen_pos += 2;
 
@@ -532,10 +566,9 @@ void render_entities_to_vga() {
             video[screen_pos] = entity->domain_name[j]; screen_pos += 2;
         }
         for (int j = strlen(entity->domain_name); j < 6; j++) {
-             video[screen_pos] = ' '; screen_pos += 2;
+            video[screen_pos] = ' '; screen_pos += 2;
         }
         video[screen_pos] = ' '; screen_pos += 2;
-
         video[screen_pos] = 'I'; screen_pos += 2;
         video[screen_pos] = ':'; screen_pos += 2;
         int ic_mod = entity->interaction_count % 100;
@@ -577,6 +610,7 @@ uint8_t get_memory_value(uint32_t address) {
 void print_char(char c, uint8_t color) {
     volatile char* video = (volatile char*)VIDEO_MEMORY;
     static int position = 0;
+
     if (c == '\n') {
         position = ((position / 80) + 1) * 80;
     } else {
@@ -584,6 +618,7 @@ void print_char(char c, uint8_t color) {
         video[position * 2 + 1] = color;
         position++;
     }
+
     if (position >= 80 * 25) {
         position = 0;
     }
@@ -618,13 +653,13 @@ static inline void outb(uint16_t port, uint8_t data) {
 }
 
 void serial_init() {
-    outb(0x3F8 + 1, 0x00);
-    outb(0x3F8 + 3, 0x80);
-    outb(0x3F8 + 0, 0x03);
-    outb(0x3F8 + 1, 0x00);
-    outb(0x3F8 + 3, 0x03);
-    outb(0x3F8 + 2, 0xC7);
-    outb(0x3F8 + 4, 0x0B);
+    outb(0x3F8 + 1, 0x00);    // Disable interrupts
+    outb(0x3F8 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+    outb(0x3F8 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+    outb(0x3F8 + 1, 0x00);    //                  (hi byte)
+    outb(0x3F8 + 3, 0x03);    // 8 bits, no parity, one stop bit
+    outb(0x3F8 + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    outb(0x3F8 + 4, 0x0B);    // IRQs enabled, RTS/DSR set
 }
 
 void serial_write(char c) {
@@ -638,61 +673,3 @@ void serial_print(const char* str) {
         str++;
     }
 }
-
-size_t strlen(const char *str) {
-    const char *s;
-    for (s = str; *s; ++s);
-    return (s - str);
-}
-
-char *strncpy(char *dest, const char *src, size_t n) {
-    size_t i;
-    for (i = 0; i < n && src[i] != '\0'; i++)
-        dest[i] = src[i];
-    for (; i < n; i++)
-        dest[i] = '\0';
-    return dest;
-}
-
-int snprintf(char *str, size_t size, const char *format, ...) {
-    if (size == 0) return 0;
-    if (size == 1) { str[0] = '\0'; return 0; }
-    const char *fmt_ptr = format;
-    char *str_ptr = str;
-    size_t remaining = size - 1;
-    va_list args;
-    va_start(args, format);
-    int value = va_arg(args, int);
-    va_end(args);
-    while (*fmt_ptr && remaining > 0) {
-        if (*fmt_ptr == '%' && *(fmt_ptr + 1) == 'd') {
-            if (value == 0) {
-                *str_ptr++ = '0';
-                remaining--;
-            } else {
-                char temp[10];
-                int i = 0;
-                int val = value;
-                while (val > 0 && i < 9) {
-                    temp[i++] = '0' + (val % 10);
-                    val /= 10;
-                }
-                for (int j = i - 1; j >= 0 && remaining > 0; j--) {
-                    *str_ptr++ = temp[j];
-                    remaining--;
-                }
-            }
-            fmt_ptr += 2;
-        } else {
-            *str_ptr++ = *fmt_ptr++;
-            remaining--;
-        }
-    }
-    *str_ptr = '\0';
-    return (str_ptr - str);
-}
-
-typedef __builtin_va_list va_list;
-#define va_start(v,l) __builtin_va_start(v,l)
-#define va_end(v) __builtin_va_end(v)
-#define va_arg(v,l) __builtin_va_arg(v,l)
